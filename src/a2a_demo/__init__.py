@@ -4,6 +4,9 @@ import click
 from dotenv import load_dotenv
 from google_a2a.common.types import AgentSkill, AgentCapabilities, AgentCard
 
+from google_a2a.common.server import A2AServer
+from a2a_demo.task_manager import MyAgentTaskManager
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -34,6 +37,15 @@ def main(host, port):
     skills=[skill]
   )
   logging.info(agent_card)
+
+  task_manager = MyAgentTaskManager()
+  server = A2AServer(
+    agent_card=agent_card,
+    task_manager=task_manager,
+    host=host,
+    port=port,
+  )
+  server.start()
 
 if __name__ == "__main__":
   main()

@@ -72,14 +72,14 @@ def math_agent(host, port):
 @click.option("--math-port", default=10003)
 @click.option("--ollama-host", default="http://localhost:11434")
 @click.option("--ollama-model", default="llama3.2")
-@click.option("--start-math", is_flag=True, default=True, help="Whether to start the Math Agent")
-def main(echo_host, echo_port, math_host, math_port, ollama_host, ollama_model, start_math):
+@click.option("--not-start-math", is_flag=True, default=False, help="Whether not to start the Math Agent")
+def main(echo_host, echo_port, math_host, math_port, ollama_host, ollama_model, not_start_math):
     """Run both Echo and Math agents simultaneously"""
     import threading
     import time
     
     math_thread = None
-    if start_math:
+    if not not_start_math:
         # Start the Math Agent in a separate thread
         math_thread = threading.Thread(
             target=math_agent,
@@ -92,7 +92,7 @@ def main(echo_host, echo_port, math_host, math_port, ollama_host, ollama_model, 
         time.sleep(2)
     
     # Start the Echo Agent in the main thread
-    math_agent_url = f"http://{math_host}:{math_port}" if start_math else None
+    math_agent_url = f"http://{math_host}:{math_port}" if not not_start_math else None
     echo_agent(
         host=echo_host,
         port=echo_port,

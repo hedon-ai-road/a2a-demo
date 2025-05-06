@@ -1,6 +1,6 @@
 # True Agent-to-Agent (A2A) Demo
 
-This project demonstrates a true Agent-to-Agent (A2A) interaction using Google's [A2A protocol](https://github.com/google-research/google-research/tree/master/a2a). It consists of two agents that communicate with each other:
+This project demonstrates a true Agent-to-Agent (A2A) interaction using Google's [A2A protocol](https://github.com/google/A2A). It consists of two agents that communicate with each other:
 
 1. **Echo Agent**: The main agent that interacts with the user and delegates math-related questions to the Math Agent.
 2. **Math Agent**: A specialized agent that handles mathematical calculations.
@@ -47,40 +47,59 @@ The implementation uses the following key components:
 - **Task Manager**: Handles processing and delegating tasks
 - **Server**: Manages HTTP communication between agents
 
+## Fault Tolerance
+
+The system includes robust fault tolerance mechanisms:
+
+- **Connection Retry**: The Echo Agent attempts multiple reconnections to the Math Agent if the initial connection fails
+- **Local Fallback**: If the Math Agent is unavailable or fails to respond, the Echo Agent can solve basic math problems locally
+- **Error Handling**: Comprehensive error handling ensures the system remains operational even during service disruptions
+
 ## Running the Demo
 
 You can run the agents in different ways:
 
-### Run Both Agents Together
+### Start Ollama
 
 ```bash
-python -m a2a_demo all
+ollama serve
 ```
 
-### Run Echo Agent Only
+### Run Both Agents
 
 ```bash
-python -m a2a_demo echo
+uv run a2a-demo
 ```
 
-### Run Math Agent Only
+### Run Only the Echo Agent (with local math solving)
 
 ```bash
-python -m a2a_demo math
+uv run a2a-demo --not-start-math
 ```
 
 ### Options
 
-- `--host`: Host address (default: localhost)
-- `--port`: Port number (default: 10002 for Echo, 10003 for Math)
+- `--echo-host`: Echo Agent host address (default: localhost)
+- `--echo-port`: Echo Agent port number (default: 10002)
+- `--math-host`: Math Agent host address (default: localhost)
+- `--math-port`: Math Agent port number (default: 10003)
 - `--ollama-host`: Ollama API address (default: http://localhost:11434)
-- `--ollama-model`: Ollama model to use (optional)
+- `--ollama-model`: Ollama model to use (default: llama3.2)
+- `--not-start-math`: Whether not to start the Math Agent (default: false)
+
+### Run Client
+
+```bash
+uv run google-a2a-cli --agent http://localhost:10002
+```
 
 ## Testing the Demo
 
-1. Start both agents using the `all` command
+1. Start the agent(s) using one of the commands above
 2. Send a request to the Echo Agent at http://localhost:10002/
-3. For math questions like "What is 25 \* 13?", the Echo Agent will delegate to the Math Agent
+3. For math questions like "What is 25 \* 13?", the Echo Agent will:
+   - First try to delegate to the Math Agent
+   - If Math Agent is unavailable, solve the problem locally
 4. For non-math questions, the Echo Agent will handle them directly
 
 ## Benefits of Agent-to-Agent Communication
@@ -89,3 +108,12 @@ python -m a2a_demo math
 - **Modularity**: New agent capabilities can be added without modifying existing agents
 - **Scalability**: The system can be extended with additional specialized agents
 - **Efficiency**: Tasks are directed to the most capable agent for processing
+- **Fault Tolerance**: The system continues functioning even if individual agents fail
+
+## Supported Math Operations
+
+The system supports various math operations:
+
+- Basic arithmetic: addition, subtraction, multiplication, division, exponentiation
+- Mathematical functions: sqrt, sin, cos, tan, log, exp
+- Simple numeric operations when no explicit operation is detected

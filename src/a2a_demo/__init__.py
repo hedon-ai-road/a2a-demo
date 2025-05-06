@@ -28,7 +28,9 @@ def main(host, port, ollama_host, ollama_model):
   logging.info(skill)
 
   capabilities = AgentCapabilities(
-    streaming=False,
+    # If false, task manager would use `on_send_task`.
+    # If true, task manager would use `on_send_task_subscribe`.
+    streaming=True,
   )
   agent_card = AgentCard(
     name="Echo Agent",

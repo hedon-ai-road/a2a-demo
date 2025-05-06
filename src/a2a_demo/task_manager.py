@@ -36,6 +36,11 @@ class MyAgentTaskManager(InMemoryTaskManager):
             self.ollama_agent = None
 
     async def on_send_task(self, request: SendTaskRequest) -> SendTaskResponse:
+        """
+        This method queries or creates a task for the agent.
+        The caller will receive exactly one response.
+        """
+
         # Upsert a task stored by InMemoryTaskManager
         await self.upsert_task(request.params)
 
@@ -59,6 +64,12 @@ class MyAgentTaskManager(InMemoryTaskManager):
         self,
         request: SendTaskStreamingRequest
         ) -> AsyncIterable[SendTaskStreamingResponse] | JSONRPCResponse:
+        """
+        This method subscribes the caller to future updates regarding a task.
+        The caller will receive a response and additionally receive subscription
+        updates over a session established between the client and the server
+        """
+        
         task_id = request.params.id
         is_new_task = task_id in self.tasks
 
@@ -136,10 +147,11 @@ class MyAgentTaskManager(InMemoryTaskManager):
 
         text_messages = ["one", "two", "three"]
         for text in text_messages:
+            ollama_rsp = await run_ollama(ollama_agent=self.ollama_agent, prompt=f"one: {received_test}")
             parts = [
                 {
                     "type": "text",
-                    "text": f"{received_test}: {text}",
+                    "text": f"{text}: {ollama_rsp}",
                 }
             ]
             message = Message(role="agent", parts=parts)

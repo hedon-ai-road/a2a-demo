@@ -15,6 +15,8 @@ from google_a2a.common.types import(
     TaskStatusUpdateEvent,
 )
 
+import asyncio
+
 class MyAgentTaskManager(InMemoryTaskManager):
     def __init__(self):
         super().__init__()
@@ -36,8 +38,28 @@ class MyAgentTaskManager(InMemoryTaskManager):
         # Send the response
         return SendTaskResponse(id=request.id, result=task)
     
-    async def on_send_task_subscribe(self, request: SendTaskStreamingRequest) -> AsyncIterable[SendTaskStreamingResponse] | JSONRPCResponse:
-        pass
+    async def on_send_task_subscribe(
+        self,
+        request: SendTaskStreamingRequest
+        ) -> AsyncIterable[SendTaskStreamingResponse] | JSONRPCResponse:
+        # Upsert a task stored by InMemoryTaskManager
+        await self.upsert_task(request.params)
+
+        task_id = request.params.id
+        # Create a queue of work to be done for this task
+        sse_event_queue = await self.setup_sse_consumer(task_id=task_id)
+
+        # Start the asynchronous work for this task
+        asyncio.create_task(self._stream_3_messages(request=request))
+
+        # Tell the client to expect future streaming responses
+        return self.dequeue_events_for_sse(
+            request_id=request.id,
+            task_id=task_id,
+            sse_event_queue=sse_event_queue,
+        )
+
+
     
     async def _update_task(
         self,
@@ -65,3 +87,32 @@ class MyAgentTaskManager(InMemoryTaskManager):
             )
         ]
         return task
+    
+    async def _stream_3_messages(self, request: SendTaskStreamingRequest):
+        task_id = request.params.id
+        received_test = request.params.message.parts[0].text
+
+        text_messages = ["one", "two", "three"]
+        for text in text_messages:
+            parts = [
+                {
+                    "type": "text",
+                    "text": f"{received_test}: {text}",
+                }
+            ]
+            message = Message(role="agent", parts=parts)
+            is_last = text == text_messages[-1]
+            task_state = TaskState.COMPLETED if is_last else TaskState.WORKING
+            task_status = TaskStatus(
+                state=task_state,
+                message=message
+            )
+            task_update_event = TaskStatusUpdateEvent(
+                id=task_id,
+                status=task_status,
+                final=is_last,
+            )
+            await self.enqueue_events_for_sse(
+                task_id=task_id,
+                task_update_event=task_update_event,
+            )

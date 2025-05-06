@@ -25,7 +25,9 @@ def main(host, port):
   )
   logging.info(skill)
 
-  capabilities = AgentCapabilities()
+  capabilities = AgentCapabilities(
+    streaming=True,
+  )
   agent_card = AgentCard(
     name="Echo Agent",
     description="This agent echos the input given",
